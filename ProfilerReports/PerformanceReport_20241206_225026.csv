@@ -1,0 +1,4 @@
+Metric,Current Value,Average,Min,Max,Threshold,Status
+FPS,1052.19,774.61,8.76,1155.40,60.00,WARNING
+Memory Usage (MB),183.00,177.57,169.00,183.00,2000.00,OK
+GPU Frame Time (ms),1.32,0.39,0.08,1.68,16.67,OK
