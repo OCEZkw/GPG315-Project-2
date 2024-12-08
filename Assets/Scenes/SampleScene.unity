@@ -293,9 +293,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 738256730}
-  - component: {fileID: 738256729}
   - component: {fileID: 738256731}
-  - component: {fileID: 738256732}
+  - component: {fileID: 738256733}
   m_Layer: 0
   m_Name: GameObject
   m_TagString: Untagged
@@ -303,22 +302,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &738256729
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 738256728}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8b9c309ebfe47704791be6ab8ceeb0b3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  settings: {fileID: 11400000, guid: c5bc4adeb1bc0fb4c9ace3cba958876a, type: 2}
-  lastUpdateTime: 0
-  reportPath: 
-  frameTimingsCount: 60
 --- !u!4 &738256730
 Transform:
   m_ObjectHideFlags: 0
@@ -341,7 +324,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 738256728}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 38ba608a2b73da94b90a9b21e5eed5e5, type: 3}
   m_Name: 
@@ -367,7 +350,17 @@ MonoBehaviour:
     memoryWarningThreshold: 0.75
     timeToConverge: 10
     displayUpdateInterval: 1
---- !u!114 &738256732
+  currentBenchmarkConfig:
+    benchmarkName: Default Benchmark
+    customMetrics:
+    - metricName: 
+      warningThreshold: 0
+      criticalThreshold: 0
+      historicalData: []
+    benchmarkDuration: 60
+    recordFrameTimestamps: 1
+    generateDetailedReport: 1
+--- !u!114 &738256733
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -376,13 +369,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 738256728}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40329bccc3a76d24aae79d2e4f06cf02, type: 3}
+  m_Script: {fileID: 11500000, guid: 0153bb25bfe6c864bbcc15169faf5a02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  targetFrameRate: 60
-  startDelay: 5
-  timeBetweeenDisplayUpdates: 0.2
-  timeToConverge: 10
+  profiler: {fileID: 738256731}
 --- !u!1 &963194225
 GameObject:
   m_ObjectHideFlags: 0

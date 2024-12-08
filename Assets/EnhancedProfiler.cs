@@ -4,6 +4,7 @@ using UnityEngine;
 using System.IO;
 using System;
 using UnityEngine.Rendering;
+using System.Linq;
 
 namespace OccaSoftware.PerformanceProfiler.Runtime
 {
@@ -142,6 +143,12 @@ namespace OccaSoftware.PerformanceProfiler.Runtime
             UpdateDisplayMetrics();
             CheckPerformanceThresholds();
             LogPerformanceData();
+
+            // Add benchmark update
+            if (isBenchmarking)
+            {
+                UpdateBenchmark();
+            }
         }
 
         void UpdatePerformanceMetrics()
@@ -262,7 +269,7 @@ namespace OccaSoftware.PerformanceProfiler.Runtime
             return UnityEngine.Random.Range(0f, 100f);
         }
 
-        float CalculateGPUComputeUtilization()
+        public float CalculateGPUComputeUtilization()
         {
             return UnityEngine.Random.Range(0f, 100f);
         }
@@ -441,6 +448,221 @@ namespace OccaSoftware.PerformanceProfiler.Runtime
             {
                 currentConfig = JsonUtility.FromJson<ProfilerConfig>(File.ReadAllText(configPath));
             }
+        }
+
+
+
+
+
+
+
+
+        // New Benchmark Configuration
+        [System.Serializable]
+        public class BenchmarkConfig
+        {
+            public string benchmarkName = "Default Benchmark";
+            public List<CustomMetric> customMetrics = new List<CustomMetric>();
+            public float benchmarkDuration = 60f; // Default 1-minute benchmark
+            public bool recordFrameTimestamps = true;
+            public bool generateDetailedReport = true;
+        }
+
+        // Custom Metric for Flexible Profiling
+        [System.Serializable]
+        public class CustomMetric
+        {
+            public string metricName;
+            public Func<float> measurementFunction;
+            public float warningThreshold;
+            public float criticalThreshold;
+            public List<float> historicalData = new List<float>();
+        }
+
+        // Performance Comparison Result
+        [System.Serializable]
+        public class PerformanceComparisonResult
+        {
+            public string benchmarkName;
+            public DateTime timestamp;
+            public Dictionary<string, float> averageMetrics = new Dictionary<string, float>();
+            public Dictionary<string, float> peakMetrics = new Dictionary<string, float>();
+            public List<string> performanceAlerts = new List<string>();
+        }
+
+        // New fields for benchmarking and comparison
+        [SerializeField] private BenchmarkConfig currentBenchmarkConfig;
+        private List<PerformanceComparisonResult> benchmarkHistory = new List<PerformanceComparisonResult>();
+        private float benchmarkStartTime;
+        private bool isBenchmarking = false;
+
+        // New Benchmarking Methods
+        public void StartBenchmark(BenchmarkConfig config)
+        {
+            currentBenchmarkConfig = config;
+            benchmarkStartTime = Time.time;
+            isBenchmarking = true;
+
+            // Clear previous benchmark data
+            foreach (var metric in currentBenchmarkConfig.customMetrics)
+            {
+                metric.historicalData.Clear();
+            }
+            PrintLogLocations();
+        }
+
+        void PrintLogLocations()
+        {
+            Debug.Log($"Performance Logs Directory: {Application.persistentDataPath}/PerformanceLogs");
+        }
+
+        void UpdateBenchmark()
+        {
+            if (!isBenchmarking) return;
+
+            // Collect custom metrics
+            foreach (var metric in currentBenchmarkConfig.customMetrics)
+            {
+                float currentValue = metric.measurementFunction();
+                metric.historicalData.Add(currentValue);
+
+                // Check thresholds during benchmark
+                if (currentValue > metric.criticalThreshold)
+                {
+                    Debug.LogError($"Critical Threshold Exceeded: {metric.metricName} = {currentValue}");
+                }
+                else if (currentValue > metric.warningThreshold)
+                {
+                    Debug.LogWarning($"Warning Threshold Approached: {metric.metricName} = {currentValue}");
+                }
+            }
+
+            // End benchmark if duration is reached
+            if (Time.time - benchmarkStartTime >= currentBenchmarkConfig.benchmarkDuration)
+            {
+                EndBenchmark();
+            }
+        }
+
+        public PerformanceComparisonResult EndBenchmark()
+        {
+            isBenchmarking = false;
+
+            // Create performance comparison result
+            var result = new PerformanceComparisonResult
+            {
+                benchmarkName = currentBenchmarkConfig.benchmarkName,
+                timestamp = DateTime.Now
+            };
+
+            // Process custom metrics
+            foreach (var metric in currentBenchmarkConfig.customMetrics)
+            {
+                if (metric.historicalData.Count > 0)
+                {
+                    result.averageMetrics[metric.metricName] = metric.historicalData.Average();
+                    result.peakMetrics[metric.metricName] = metric.historicalData.Max();
+
+                    // Check for overall benchmark performance
+                    if (result.averageMetrics[metric.metricName] > metric.warningThreshold)
+                    {
+                        result.performanceAlerts.Add($"{metric.metricName} exceeded warning threshold");
+                    }
+                }
+            }
+
+            // Store benchmark result
+            benchmarkHistory.Add(result);
+
+            // Generate detailed report if configured
+            if (currentBenchmarkConfig.generateDetailedReport)
+            {
+                GenerateDetailedBenchmarkReport(result);
+            }
+
+            return result;
+        }
+
+        void GenerateDetailedBenchmarkReport(PerformanceComparisonResult result)
+        {
+            string reportPath = Path.Combine(logDirectoryPath, $"Benchmark_Report_{result.benchmarkName}_{result.timestamp:yyyyMMdd_HHmmss}.txt");
+
+            using (StreamWriter writer = new StreamWriter(reportPath))
+            {
+                writer.WriteLine($"Benchmark Report: {result.benchmarkName}");
+                writer.WriteLine($"Timestamp: {result.timestamp}");
+                writer.WriteLine("\nAverage Metrics:");
+
+                foreach (var metric in result.averageMetrics)
+                {
+                    writer.WriteLine($"{metric.Key}: {metric.Value:F2}");
+                }
+
+                writer.WriteLine("\nPeak Metrics:");
+                foreach (var metric in result.peakMetrics)
+                {
+                    writer.WriteLine($"{metric.Key}: {metric.Value:F2}");
+                }
+
+                if (result.performanceAlerts.Any())
+                {
+                    writer.WriteLine("\nPerformance Alerts:");
+                    foreach (var alert in result.performanceAlerts)
+                    {
+                        writer.WriteLine(alert);
+                    }
+                }
+            }
+        }
+
+        // Integration with Debugging Tools
+        public void RegisterCustomMetric(string name, Func<float> measurementFunc, float warningThreshold, float criticalThreshold)
+        {
+            var newMetric = new CustomMetric
+            {
+                metricName = name,
+                measurementFunction = measurementFunc,
+                warningThreshold = warningThreshold,
+                criticalThreshold = criticalThreshold
+            };
+
+            currentBenchmarkConfig.customMetrics.Add(newMetric);
+        }
+
+        // Method to compare multiple benchmark results
+        public List<PerformanceComparisonResult> CompareBenchmarks()
+        {
+            return benchmarkHistory.OrderByDescending(b => b.timestamp).ToList();
+        }
+
+
+        // Example of how to use the new benchmarking system
+        void ExampleBenchmarkSetup()
+        {
+            // Create a benchmark configuration
+            var benchmarkConfig = new BenchmarkConfig
+            {
+                benchmarkName = "Optimization Strategy Test",
+                benchmarkDuration = 120f // 2-minute benchmark
+            };
+
+            // Register custom metrics for comparison
+            RegisterCustomMetric(
+                "Custom GPU Load",
+                () => CalculateGPUComputeUtilization(),
+                50f,
+                75f
+            );
+
+            RegisterCustomMetric(
+                "Memory Allocation",
+                () => (float)System.GC.GetTotalMemory(false) / SystemInfo.systemMemorySize,
+                0.7f,
+                0.9f
+            );
+
+            // Start the benchmark
+            StartBenchmark(benchmarkConfig);
         }
     }
 }
